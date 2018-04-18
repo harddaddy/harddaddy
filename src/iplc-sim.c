@@ -37,85 +37,76 @@ void iplc_sim_process_pipeline_nop();
 // Outout performance results
 void iplc_sim_finalize();
 
-typedef struct cache_line
-{
-    // Your data structures for implementing your cache should include:
-    // a valid bit
-    // a tag
-    // a method for handling varying levels of associativity
-    // a method for selecting which item in the cache is going to be replaced
+typedef struct cache_line {
+    /* Your data structures for implementing your cache should include:
+       a valid bit
+       a tag
+       a method for handling varying levels of associativity
+       a method for selecting which item in the cache is going to be replaced */
+    char* valid_bit;
+ 	  int* tag;
+	   char* used; // Used to count the number of accesses
 } cache_line_t;
 
-cache_line_t *cache=NULL;
-int cache_index=0;
-int cache_blocksize=0;
+cache_line_t *cache = NULL;
+int cache_index = 0;
+int cache_blocksize = 0;
 int cache_blockoffsetbits = 0;
-int cache_assoc=0;
-long cache_miss=0;
-long cache_access=0;
-long cache_hit=0;
+int cache_assoc = 0;
+long cache_miss = 0;
+long cache_access = 0;
+long cache_hit = 0;
 
 char instruction[16];
 char reg1[16];
 char reg2[16];
 char offsetwithreg[16];
-unsigned int data_address=0;
-unsigned int instruction_address=0;
-unsigned int pipeline_cycles=0;   // how many cycles did you pipeline consume
-unsigned int instruction_count=0; // home many real instructions ran thru the pipeline
-unsigned int branch_predict_taken=0;
-unsigned int branch_count=0;
-unsigned int correct_branch_predictions=0;
+unsigned int data_address = 0;
+unsigned int instruction_address = 0;
+unsigned int pipeline_cycles = 0;   // how many cycles did you pipeline consume
+unsigned int instruction_count = 0; // home many real instructions ran thru the pipeline
+unsigned int branch_predict_taken = 0;
+unsigned int branch_count = 0;
+unsigned int correct_branch_predictions = 0;
 
-unsigned int debug=0;
-unsigned int dump_pipeline=1;
+unsigned int debug = 0;
+unsigned int dump_pipeline = 1;
 
 enum instruction_type {NOP, RTYPE, LW, SW, BRANCH, JUMP, JAL, SYSCALL};
 
-typedef struct rtype
-{
+typedef struct rtype {
     char instruction[16];
     int reg1;
     int reg2_or_constant;
     int dest_reg;
-    
 } rtype_t;
 
-typedef struct load_word
-{
+typedef struct load_word {
     unsigned int data_address;
     int dest_reg;
     int base_reg;
-    
 } lw_t;
 
-typedef struct store_word
-{
+typedef struct store_word {
     unsigned int data_address;
     int src_reg;
     int base_reg;
 } sw_t;
 
-typedef struct branch
-{
+typedef struct branch {
     int reg1;
     int reg2;
-    
 } branch_t;
 
 
-typedef struct jump
-{
+typedef struct jump {
     char instruction[16];
-    
 } jump_t;
 
-typedef struct pipeline
-{
+typedef struct pipeline {
     enum instruction_type itype;
     unsigned int instruction_address;
-    union
-    {
+    union {
         rtype_t   rtype;
         lw_t      lw;
         sw_t      sw;
@@ -123,7 +114,6 @@ typedef struct pipeline
         jump_t    jump;
     }
     stage;
-    
 } pipeline_t;
 
 enum pipeline_stages {FETCH, DECODE, ALU, MEM, WRITEBACK};
@@ -136,17 +126,14 @@ pipeline_t pipeline[MAX_STAGES];
 /*
  * Correctly configure the cache.
  */
-void iplc_sim_init(int index, int blocksize, int assoc)
-{
-    int i=0, j=0;
+void iplc_sim_init(int index, int blocksize, int assoc) {
+    int i = 0, j = 0;
     unsigned long cache_size = 0;
     cache_index = index;
     cache_blocksize = blocksize;
     cache_assoc = assoc;
     
-    
-    cache_blockoffsetbits =
-    (int) rint((log( (double) (blocksize * 4) )/ log(2)));
+    cache_blockoffsetbits = (int) rint((log( (double) (blocksize * 4) )/ log(2)));
     /* Note: rint function rounds the result up prior to casting */
     
     cache_size = assoc * ( 1 << index ) * ((32 * blocksize) + 33 - index - cache_blockoffsetbits);
@@ -163,10 +150,16 @@ void iplc_sim_init(int index, int blocksize, int assoc)
         exit(-1);
     }
     
-    cache = (cache_line_t *) malloc((sizeof(cache_line_t) * 1<<index));
+    cache = (cache_line_t*) malloc((sizeof(cache_line_t) * 1<<index));
     
     // Dynamically create our cache based on the information the user entered
-    for (i = 0; i < (1<<index); i++) {
+    for (i = 0; i < (1 << index); i++) {
+        cache[i] = (cache_line_t) malloc(sizeof(ache_line_t));
+    	
+    	   // Dynamically allocate the members of each cache line
+    	   cache[i].valid_bit = (char*) calloc(assoc, sizeof(char)); // We use calloc to initialize the valid bits to zero
+    	   cache[i].tag = (int*) malloc(sizeof(int) * assoc);
+    	   cache[i].used = (char*) malloc(sizeof(char) * assoc);
     }
     
     // init the pipeline -- set all data to zero and instructions to NOP
@@ -202,9 +195,9 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
  */
 int iplc_sim_trap_address(unsigned int address)
 {
-    int i=0, index=0;
-    int tag=0;
-    int hit=0;
+    int i = 0, index = 0;
+    int tag = 0;
+    int hit = 0;
     
     // Call the appropriate function for a miss or hit
 
