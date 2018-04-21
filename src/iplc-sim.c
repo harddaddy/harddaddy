@@ -50,7 +50,7 @@ typedef struct cache_line {
        a method for selecting which item in the cache is going to be replaced */
     char* valid_bit;
     int* tag;
-    char* used; // Used to count the number of accesses
+    int* age; // Used to count the number of accesses
 } cache_line_t;
 
 // Cache Variables
@@ -162,13 +162,13 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
     for (i = 0; i < (1 << index); i++) {
         cache[i] = (cache_line_t) malloc(sizeof(cache_line_t));
     	
-		// Dynamically allocate the members of each cache line
+		// Dynamically allocate the members of each cache set
     	cache[i].valid_bit = (char*) calloc(assoc, sizeof(char)); // We use calloc to initialize the valid bits to zero
     	cache[i].tag = (int*) malloc(sizeof(int) * assoc);
-   		cache[i].used = (char*) malloc(sizeof(char) * assoc);
+   		cache[i].age = (int*) malloc(sizeof(int) * assoc);
     }
     
-    // init the pipeline -- set all data to zero and instructions to NOP
+    // Init the pipeline -- set all data to zero and instructions to NOP
     for (i = 0; i < MAX_STAGES; i++) {
         // itype is set to O which is NOP type instruction
         bzero(&(pipeline[i]), sizeof(pipeline_t));
@@ -178,13 +178,35 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
 /*	iplc_sim_trap_address() determined this is not in our cache. Put it there
  	and make sure that is now our Most Recently Used (MRU) entry. */
 void iplc_sim_LRU_replace_on_miss(int index, int tag) {
-    /* You must implement this function */
+	int i;
+	int oldest_age = cache[index].age[0];
+	int oldest_line = 0;
+	
+	// Search for the least recently used line
+	for (i = 1; i < cache_assoc; i++) {
+		if (cache[index].age[i] > oldest_age) {
+			oldest_age = cache[index].age[i];
+			oldest_line = i;
+		}
+	}
+	
+	// Replace the tag
+	cache[index].tag[oldest_spot] = tag;
+	
+	// Update statistics
+	iplc_sim_LRU_update_on_hit(index, oldest_line);
 }
 
 /*	iplc_sim_trap_address() determined the entry is in our cache. Update its
  	information in the cache. */
 void iplc_sim_LRU_update_on_hit(int index, int assoc_entry) {
-    /* You must implement this function */
+    int i;
+	
+	// Update all age counters for each line in the set
+	cache[index].age[assoc_entry] = 0;
+	for (i = 0; i < cache_assoc; i++) {
+		cache[index].age[i] += 1;
+	}
 }
 
 /*	Check if the address is in our cache. Update our counter statistics 
@@ -192,31 +214,32 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry) {
  	associativity we may need to check through multiple entries for our
  	desired index.  In that case we will also need to call the LRU functions. */
 int iplc_sim_trap_address(unsigned int address) {
+
     int i, hit = 0, set_element = 0;
 	int index = (1 << cache_index - 1)  & (address >> cache_blockoffsetbits); // Isolates the index
+
     int tag = address >> (cache_index + cache_blockoffsetbits); // Isolates the tag
     
 	// Search for the appropriate tag in the appropriate set
 	for (i = 0; i < cache_assoc; i++) {
+		// Handle the case of a cahe hit
 		if (cache[index].valid_bit[i] == 1 && cache[index].tag[i] == tag) {
 			hit = 1;
-			set_element = i;
+			cache_hit += 1;
+			iplc_sim_LRU_update_on_hit(index, i);
 			break;
 		}
+	}
+	
+	// Handle the case of a cache miss
+	if (!hit) {
+		cache_miss += 1;
+		iplc_sim_LRU_replace_on_miss(index, tag);
 	}
 	
 	// Increment access counter
 	cache_access += 1;
 	
-    // Call the appropriate function for a miss or hit
-	if (hit) {
-		iplc_sim_LRU_update_on_hit(index, tag);
-		cache_hit += 1;
-	}
-	else {
-		iplc_sim_LRU_replace_on_miss(index, tag);
-		cache_miss += 1;
-	}
     // Expects you to return 1 for hit, 0 for miss
     return hit;
 }
