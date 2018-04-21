@@ -139,7 +139,7 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
     cache_blocksize = blocksize;
     cache_assoc = assoc;
     
-    cache_blockoffsetbits = (int) rint((log((double) (blocksize * 4)) / log(2)));
+    cache_blockoffsetbits = (int) ceil((blocksize * 4) / 2);
     /* Note: rint function rounds the result up prior to casting */
     
     cache_size = assoc * (1 << index) * ((32 * blocksize) + 33 - index - cache_blockoffsetbits);
@@ -156,11 +156,10 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
         exit(-1);
     }
     
-    cache = (cache_line_t*) malloc((sizeof(cache_line_t) * 1 << index));
+    cache = malloc((sizeof(cache_line_t) * 1 << index));
     
     // Dynamically create our cache based on the information the user entered
     for (i = 0; i < (1 << index); i++) {
-        cache[i] = (cache_line_t) malloc(sizeof(cache_line_t));
     	
 		// Dynamically allocate the members of each cache set
     	cache[i].valid_bit = (char*) calloc(assoc, sizeof(char)); // We use calloc to initialize the valid bits to zero
@@ -191,7 +190,7 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag) {
 	}
 	
 	// Replace the tag
-	cache[index].tag[oldest_spot] = tag;
+	cache[index].tag[oldest_line] = tag;
 	
 	// Update statistics
 	iplc_sim_LRU_update_on_hit(index, oldest_line);
