@@ -50,7 +50,7 @@ typedef struct cache_line {
        a method for selecting which item in the cache is going to be replaced */
     char* valid_bit;
     int* tag;
-    int* age; // Used to count the number of accesses
+    int* age; // Counter for time since last access
 } cache_line_t;
 
 // Cache Variables
@@ -156,15 +156,14 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
         exit(-1);
     }
     
-    cache = malloc((sizeof(cache_line_t) * 1 << index));
+    cache = (cache_line_t*) malloc((sizeof(cache_line_t) * 1 << index));
     
     // Dynamically create our cache based on the information the user entered
     for (i = 0; i < (1 << index); i++) {
-    	
 		// Dynamically allocate the members of each cache set
     	cache[i].valid_bit = (char*) calloc(assoc, sizeof(char)); // We use calloc to initialize the valid bits to zero
     	cache[i].tag = (int*) malloc(sizeof(int) * assoc);
-   		cache[i].age = (int*) malloc(sizeof(int) * assoc);
+   		cache[i].age = (int*) calloc(assoc, sizeof(int));
     }
     
     // Init the pipeline -- set all data to zero and instructions to NOP
@@ -182,7 +181,12 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag) {
 	int oldest_line = 0;
 	
 	// Search for the least recently used line
-	for (i = 1; i < cache_assoc; i++) {
+	for (i = 0; i < cache_assoc; i++) {
+		// Check for empty locations in the set
+		if (cache[index].valid_bit[i] == 0) {
+			oldest_line = i;
+			break;
+		}
 		if (cache[index].age[i] > oldest_age) {
 			oldest_age = cache[index].age[i];
 			oldest_line = i;
