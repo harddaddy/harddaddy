@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
+#include <strings.h>
+#include <stdbool.h>
 
 #define MAX_CACHE_SIZE 10240
 #define CACHE_MISS_DELAY 10 // 10 cycle cache miss penalty
@@ -158,7 +160,7 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
     
     // Dynamically create our cache based on the information the user entered
     for (i = 0; i < (1 << index); i++) {
-        cache[i] = (cache_line_t) malloc(sizeof(ache_line_t));
+        cache[i] = (cache_line_t) malloc(sizeof(cache_line_t));
     	
 		// Dynamically allocate the members of each cache line
     	cache[i].valid_bit = (char*) calloc(assoc, sizeof(char)); // We use calloc to initialize the valid bits to zero
@@ -191,7 +193,7 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry) {
  	desired index.  In that case we will also need to call the LRU functions. */
 int iplc_sim_trap_address(unsigned int address) {
     int i, hit = 0, set_element = 0;
-	int index = (1 << chace_index - 1)  & (address >> cache_blockoffsetbits); // Isolates the index
+	int index = (1 << cache_index - 1)  & (address >> cache_blockoffsetbits); // Isolates the index
     int tag = address >> (cache_index + cache_blockoffsetbits); // Isolates the tag
     
 	// Search for the appropriate tag in the appropriate set
@@ -208,7 +210,7 @@ int iplc_sim_trap_address(unsigned int address) {
 	
     // Call the appropriate function for a miss or hit
 	if (hit) {
-		iplc_sim_LRU_update_on_hit(index, );
+		iplc_sim_LRU_update_on_hit(index, tag);
 		cache_hit += 1;
 	}
 	else {
