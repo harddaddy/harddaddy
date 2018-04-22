@@ -605,17 +605,28 @@ void pretty_print_table_menu(char* title, char menu_sep,
 
 }
 
-void pretty_print_table_body(pa_run_t* results, int w1, int w2, int w3, int w4, int w5, int w6) {
+void pretty_print_table_body(pa_run_t* results, int m, int w1, int w2, int w3, int w4, int w5, int w6) {
+
+	char* str;
 
 	for (int i = 0; i < 18; i++) {
 
-		printf("%-2c%-*d%-2c%-*d%-2c%-*d%-2c%-*d%-2c%-*.*f%-2c%-*.*f\n", 
-			' ', w1-1, results[i].index,
+		str = (m == i) ? " <-- best" : "";
+
+		printf("%-2c%-*d%-2c%-*d%-2c%-*d%-2c%-*d%-2c%-*.*f%-2c%-*.*f%c%s\n", 
+			'|', w1-1, results[i].index,
 			' ', w2-1, results[i].blocksize,
 			' ', w3-1, results[i].associativity,
 			' ', w4-1, results[i].branch_pred,
 			'|', w5-1, w5-4, results[i].cpi,
-			' ', w6-1, w6-4, results[i].cmr);
+			' ', w6-1, w6-4, results[i].cmr,
+			'|', str);
+
+		/*
+		+---+---+---+----+--------+--------+
+		| 0   0   0   0  | 0.0000   0.0000 |
+		| 0   0   0   0  | 0.0000   0.0000 |
+		*/
 
 	}
 
@@ -702,6 +713,8 @@ int main(int argc, char* argv[]) {
     			double cpi_outputs[18];
     			double cmr_outputs[18];
 
+    			int m = 0;
+
     			for (int i = 0; i < 18; i++) {
 
     				pa_sims[i].index 			= index_inputs[i];
@@ -726,6 +739,10 @@ int main(int argc, char* argv[]) {
     				//cpi_outputs[i] = cache_miss / cache_access;
     				//cmr_outputs[i] = pipeline_cycles / instruction_count;
 
+    				if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
+						m = i;
+					}
+
     				pa_sims[i].cpi = cpi_outputs[i];
     				pa_sims[i].cmr = cmr_outputs[i];
 
@@ -736,7 +753,7 @@ int main(int argc, char* argv[]) {
     				"cache size", "block size", "associativity", "branch prediction", "CPI", "cache miss rate",
     				3,3,3,4,8,8);
 
-				pretty_print_table_body(pa_sims, 3,3,3,4,8,8);
+				pretty_print_table_body(pa_sims, m, 3,3,3,4,8,8);
 
 
 
