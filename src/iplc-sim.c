@@ -562,29 +562,29 @@ void pretty_print_table_menu(char* title, char menu_sep,
 
 	printf("%s:\n", 
 		title);
-	printf("%c%s\n", ' ', 
+	printf("%2c%s\n", ' ', 
 		col1);
-	printf("%c%-*c%s\n", ' ', 
+	printf("%2c%-*c%s\n", ' ', 
 		w1+1, menu_sep, col2);
-	printf("%c%-*c%-*c%s\n", ' ', 
+	printf("%2c%-*c%-*c%s\n", ' ', 
 		w1+1, menu_sep, 
 		w2+1, menu_sep, col3);
-	printf("%c%-*c%-*c%-*c%s\n", ' ', 
+	printf("%2c%-*c%-*c%-*c%s\n", ' ', 
 		w1+1, menu_sep, 
 		w2+1, menu_sep, 
 		w3+1, menu_sep, col4);
-	printf("%c%-*c%-*c%-*c%-*c%s\n", ' ', 
+	printf("%2c%-*c%-*c%-*c%-*c%s\n", ' ', 
 		w1+1, menu_sep, 
 		w2+1, menu_sep, 
 		w3+1, menu_sep, 
 		w4+1, menu_sep, col5);
-	printf("%c%-*c%-*c%-*c%-*c%-*c%s\n", ' ', 
+	printf("%2c%-*c%-*c%-*c%-*c%-*c%s\n", ' ', 
 		w1+1, menu_sep, 
 		w2+1, menu_sep, 
 		w3+1, menu_sep, 
 		w4+1, menu_sep, 
 		w5+1, menu_sep, col6);
-	printf("%c%-*c%-*c%-*c%-*c%-*c%-*c\n", ' ', 
+	printf("%2c%-*c%-*c%-*c%-*c%-*c%-*c\n", ' ', 
 		w1+1, menu_sep, 
 		w2+1, menu_sep, 
 		w3+1, menu_sep, 
@@ -592,7 +592,8 @@ void pretty_print_table_menu(char* title, char menu_sep,
 		w5+1, menu_sep, 
 		w6+1, menu_sep);
 
-	printf("%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c\n", 
+	printf("%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c\n", 
+		'+',
 		w1, padding, '+', 
 		w2, padding, '+', 
 		w3, padding, '+', 
@@ -608,8 +609,14 @@ void pretty_print_table_body(pa_run_t* results, int w1, int w2, int w3, int w4, 
 
 	for (int i = 0; i < 18; i++) {
 
-		
-		
+		printf("%-2c%-*d%-2c%-*d%-2c%-*d%-2c%-*d%-2c%-*.*f%-2c%-*.*f\n", 
+			' ', w1-1, results[i].index,
+			' ', w2-1, results[i].blocksize,
+			' ', w3-1, results[i].associativity,
+			' ', w4-1, results[i].branch_pred,
+			'|', w5-1, w5-4, results[i].cpi,
+			' ', w6-1, w6-4, results[i].cmr);
+
 	}
 
 }
