@@ -53,6 +53,16 @@ typedef struct cache_line {
     int* age; // Counter for time since last access
 } cache_line_t;
 
+typedef struct pa_run {
+	/* Structure to hold the performance analysis sims */
+	int index;
+	int blocksize;
+	int associativity;
+	int branch_pred;
+	double cpi;
+	double cmr; // cache miss rate
+} pa_run_t;
+
 // Cache Variables
 cache_line_t* cache = NULL;
 int cache_index = 0;
@@ -543,43 +553,197 @@ bool run_unit_tests() {
     return true;
 }
 
+void pretty_print_table_menu(char* title, char menu_sep, 
+						char* col1, char* col2, char* col3, char* col4, char* col5, char* col6,
+						int w1, int w2, int w3, int w4, int w5, int w6) {
+
+	const char* padding = "--------------------------------------------------------------------------------";
+	const char* blank 	= "                                                                                ";
+
+	printf("%s:\n", 
+		title);
+	printf("%c%s\n", ' ', 
+		col1);
+	printf("%c%-*c%s\n", ' ', 
+		w1+1, menu_sep, col2);
+	printf("%c%-*c%-*c%s\n", ' ', 
+		w1+1, menu_sep, 
+		w2+1, menu_sep, col3);
+	printf("%c%-*c%-*c%-*c%s\n", ' ', 
+		w1+1, menu_sep, 
+		w2+1, menu_sep, 
+		w3+1, menu_sep, col4);
+	printf("%c%-*c%-*c%-*c%-*c%s\n", ' ', 
+		w1+1, menu_sep, 
+		w2+1, menu_sep, 
+		w3+1, menu_sep, 
+		w4+1, menu_sep, col5);
+	printf("%c%-*c%-*c%-*c%-*c%-*c%s\n", ' ', 
+		w1+1, menu_sep, 
+		w2+1, menu_sep, 
+		w3+1, menu_sep, 
+		w4+1, menu_sep, 
+		w5+1, menu_sep, col6);
+	printf("%c%-*c%-*c%-*c%-*c%-*c%-*c\n", ' ', 
+		w1+1, menu_sep, 
+		w2+1, menu_sep, 
+		w3+1, menu_sep, 
+		w4+1, menu_sep, 
+		w5+1, menu_sep, 
+		w6+1, menu_sep);
+
+	printf("%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c\n", 
+		w1, padding, '+', 
+		w2, padding, '+', 
+		w3, padding, '+', 
+		w4, padding, '+', 
+		w5, padding, '+', 
+		w6, padding, '+');
+
+
+
+}
+
+void pretty_print_table_body(pa_run_t* results, int w1, int w2, int w3, int w4, int w5, int w6) {
+
+	for (int i = 0; i < 18; i++) {
+
+		
+		
+	}
+
+}
+
 /************************************************************************************************/
 /* MAIN Function ********************************************************************************/
 /************************************************************************************************/
 
 //*****Main Function*****//
-int main() {
+int main(int argc, char* argv[]) {
+	/*
+	Arguments: [-pa <tracefile>]
+	*/
+
     char trace_file_name[1024];
     FILE *trace_file = NULL;
     char buffer[80];
     int index = 10;
     int blocksize = 1;
     int assoc = 1;
-    
-    printf("Please enter the tracefile: ");
-    scanf("%s", trace_file_name);
-    
-    trace_file = fopen(trace_file_name, "r");
-    
-    if ( trace_file == NULL ) {
-        printf("fopen failed for %s file\n", trace_file_name);
-        exit(-1);
+
+    if (argc == 1) {
+    	/*
+    	When no other arguments are given, default to asking the user for the input information.
+    	*/
+
+	    printf("Please enter the tracefile: ");
+	    scanf("%s", trace_file_name);
+	    
+	    trace_file = fopen(trace_file_name, "r");
+	    
+	    if ( trace_file == NULL ) {
+	        printf("fopen failed for %s file\n", trace_file_name);
+	        exit(-1);
+	    }
+	    
+	    printf("Enter Cache Size (index), Blocksize and Level of Assoc \n");
+	    scanf( "%d %d %d", &index, &blocksize, &assoc );
+	    
+	    printf("Enter Branch Prediction: 0 (NOT taken), 1 (TAKEN): ");
+	    scanf("%d", &branch_predict_taken );
+	    
+	    iplc_sim_init(index, blocksize, assoc);
+	    
+	    while (fgets(buffer, 80, trace_file) != NULL) {
+	        iplc_sim_parse_instruction(buffer);
+	        if (dump_pipeline)
+	            iplc_sim_dump_pipeline();
+	    }
+	    
+	    iplc_sim_finalize();
+
+    } else {
+    	/*
+    	When there are arguemnts, check that they are the correct arguemnts.
+    	*/
+
+    	if (argc == 3) {
+
+    		if (strcmp(argv[1],"-pa") == 0) {
+
+    			/*
+    			When -pa is specified, run the performance analysis on pre-set input variables.
+    			The output is then summarized for the simulation.
+    			*/
+
+
+    			trace_file = fopen(argv[2], "r");
+
+    			if (trace_file == NULL) {
+    				//todo: problems
+    			} else {
+    				// all good
+    			}
+
+    			pa_run_t pa_sims[18];
+				
+				int index_inputs	[18] = {7,6,6,6,5,5,5,4,4,	7,6,6,6,5,5,5,4,4};
+    			int blocksize_inputs[18] = {1,1,2,4,1,2,4,2,4,	1,1,2,4,1,2,4,2,4};
+    			int assoclvl_inputs	[18] = {1,2,1,1,4,2,2,4,4,	1,2,1,1,4,2,2,4,4};
+    			int brnchpred_inputs[18] = {0,0,0,0,0,0,0,0,0,	1,1,1,1,1,1,1,1,1};
+
+    			double cpi_outputs[18];
+    			double cmr_outputs[18];
+
+    			for (int i = 0; i < 18; i++) {
+
+    				pa_sims[i].index 			= index_inputs[i];
+    				pa_sims[i].blocksize 		= blocksize_inputs[i];
+    				pa_sims[i].associativity 	= assoclvl_inputs[i];
+    				pa_sims[i].branch_pred 		= brnchpred_inputs[i];
+
+    				branch_predict_taken = brnchpred_inputs[i];
+    				iplc_sim_init(index_inputs[i], blocksize_inputs[i], assoclvl_inputs[i]);
+
+    				while(fgets(buffer, 80, trace_file) != NULL) {
+
+    					iplc_sim_parse_instruction(buffer);
+    					if(dump_pipeline) {
+    						iplc_sim_dump_pipeline();
+    					}
+
+    				}
+
+    				iplc_sim_finalize();
+
+    				//cpi_outputs[i] = cache_miss / cache_access;
+    				//cmr_outputs[i] = pipeline_cycles / instruction_count;
+
+    				pa_sims[i].cpi = cpi_outputs[i];
+    				pa_sims[i].cmr = cmr_outputs[i];
+
+    			}
+
+
+				pretty_print_table_menu("Simulation Performance analysis", ':', 
+    				"cache size", "block size", "associativity", "branch prediction", "CPI", "cache miss rate",
+    				3,3,3,4,8,8);
+
+				pretty_print_table_body(pa_sims, 3,3,3,4,8,8);
+
+
+
+    		} else {
+    			//todo: problems
+    		}
+
+    	} else {
+    		//todo: problems
+    	}
+
     }
+
     
-    printf("Enter Cache Size (index), Blocksize and Level of Assoc \n");
-    scanf( "%d %d %d", &index, &blocksize, &assoc );
     
-    printf("Enter Branch Prediction: 0 (NOT taken), 1 (TAKEN): ");
-    scanf("%d", &branch_predict_taken );
-    
-    iplc_sim_init(index, blocksize, assoc);
-    
-    while (fgets(buffer, 80, trace_file) != NULL) {
-        iplc_sim_parse_instruction(buffer);
-        if (dump_pipeline)
-            iplc_sim_dump_pipeline();
-    }
-    
-    iplc_sim_finalize();
     return 0;
 }
