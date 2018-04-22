@@ -537,22 +537,9 @@ void iplc_sim_parse_instruction(char *buffer) {
     }
 }
 
-
-/********************************
- * Unit Testing *****************
- *******************************/
-
-bool run_unit_tests() {
-
-
-
-
-
-
-
-    return true;
-}
-
+/*
+This function pretty prints the menu portion of the performance analysis table.
+*/
 void pretty_print_table_menu(char* title, char menu_sep, 
 						char* col1, char* col2, char* col3, char* col4, char* col5, char* col6,
 						int w1, int w2, int w3, int w4, int w5, int w6) {
@@ -601,10 +588,12 @@ void pretty_print_table_menu(char* title, char menu_sep,
 		w5, padding, '+', 
 		w6, padding, '+');
 
-
-
 }
 
+/*
+This function pretty prints the body portion of the performance analysis table.
+Includes pointing out which run had the lowest CPI and cache miss rate.
+*/
 void pretty_print_table_body(pa_run_t* results, int m, int w1, int w2, int w3, int w4, int w5, int w6) {
 
 	char* str;
@@ -629,6 +618,61 @@ void pretty_print_table_body(pa_run_t* results, int m, int w1, int w2, int w3, i
 		*/
 
 	}
+
+}
+
+void run_pa(FILE* trace_file, pa_run_t* pa_sims) {
+
+	char buffer[80];
+
+	int index_inputs	[18] = {7,6,6,6,5,5,5,4,4,	7,6,6,6,5,5,5,4,4};
+	int blocksize_inputs[18] = {1,1,2,4,1,2,4,2,4,	1,1,2,4,1,2,4,2,4};
+	int assoclvl_inputs	[18] = {1,2,1,1,4,2,2,4,4,	1,2,1,1,4,2,2,4,4};
+	int brnchpred_inputs[18] = {0,0,0,0,0,0,0,0,0,	1,1,1,1,1,1,1,1,1};
+
+	double cpi_outputs[18];
+	double cmr_outputs[18];
+
+	int m = 0;
+
+	for (int i = 0; i < 18; i++) {
+
+		pa_sims[i].index 			= index_inputs[i];
+		pa_sims[i].blocksize 		= blocksize_inputs[i];
+		pa_sims[i].associativity 	= assoclvl_inputs[i];
+		pa_sims[i].branch_pred 		= brnchpred_inputs[i];
+
+		branch_predict_taken = brnchpred_inputs[i];
+		iplc_sim_init(index_inputs[i], blocksize_inputs[i], assoclvl_inputs[i]);
+
+		while(fgets(buffer, 80, trace_file) != NULL) {
+
+			iplc_sim_parse_instruction(buffer);
+			if(dump_pipeline) {
+				iplc_sim_dump_pipeline();
+			}
+
+		}
+
+		iplc_sim_finalize();
+
+		cpi_outputs[i] = (instruction_count == 0) 	? 0 : (pipeline_cycles / instruction_count);
+		cmr_outputs[i] = (cache_access == 0) 		? 0 : (cache_miss / cache_access);
+
+		if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
+			m = i;
+		}
+
+		pa_sims[i].cpi = cpi_outputs[i];
+		pa_sims[i].cmr = cmr_outputs[i];
+
+	}
+
+	pretty_print_table_menu("Simulation Performance analysis", ':', 
+		"cache size", "block size", "associativity", "branch prediction", "CPI", "cache miss rate",
+		3,3,3,4,8,8);
+
+	pretty_print_table_body(pa_sims, m, 3,3,3,4,8,8);
 
 }
 
@@ -704,58 +748,8 @@ int main(int argc, char* argv[]) {
     			}
 
     			pa_run_t pa_sims[18];
-				
-				int index_inputs	[18] = {7,6,6,6,5,5,5,4,4,	7,6,6,6,5,5,5,4,4};
-    			int blocksize_inputs[18] = {1,1,2,4,1,2,4,2,4,	1,1,2,4,1,2,4,2,4};
-    			int assoclvl_inputs	[18] = {1,2,1,1,4,2,2,4,4,	1,2,1,1,4,2,2,4,4};
-    			int brnchpred_inputs[18] = {0,0,0,0,0,0,0,0,0,	1,1,1,1,1,1,1,1,1};
 
-    			double cpi_outputs[18];
-    			double cmr_outputs[18];
-
-    			int m = 0;
-
-    			for (int i = 0; i < 18; i++) {
-
-    				pa_sims[i].index 			= index_inputs[i];
-    				pa_sims[i].blocksize 		= blocksize_inputs[i];
-    				pa_sims[i].associativity 	= assoclvl_inputs[i];
-    				pa_sims[i].branch_pred 		= brnchpred_inputs[i];
-
-    				branch_predict_taken = brnchpred_inputs[i];
-    				iplc_sim_init(index_inputs[i], blocksize_inputs[i], assoclvl_inputs[i]);
-
-    				while(fgets(buffer, 80, trace_file) != NULL) {
-
-    					iplc_sim_parse_instruction(buffer);
-    					if(dump_pipeline) {
-    						iplc_sim_dump_pipeline();
-    					}
-
-    				}
-
-    				iplc_sim_finalize();
-
-    				//cpi_outputs[i] = cache_miss / cache_access;
-    				//cmr_outputs[i] = pipeline_cycles / instruction_count;
-
-    				if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
-						m = i;
-					}
-
-    				pa_sims[i].cpi = cpi_outputs[i];
-    				pa_sims[i].cmr = cmr_outputs[i];
-
-    			}
-
-
-				pretty_print_table_menu("Simulation Performance analysis", ':', 
-    				"cache size", "block size", "associativity", "branch prediction", "CPI", "cache miss rate",
-    				3,3,3,4,8,8);
-
-				pretty_print_table_body(pa_sims, m, 3,3,3,4,8,8);
-
-
+				run_pa(trace_file, pa_sims);
 
     		} else {
     			//todo: problems
