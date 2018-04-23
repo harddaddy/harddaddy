@@ -63,6 +63,18 @@ typedef struct pa_run {
 	double cmr; // cache miss rate
 } pa_run_t;
 
+// stats for the various instructions
+typedef struct instruction_stats {
+	int rtype;
+	int lw;
+	int sw;
+	int branch;
+	int jump;
+	int syscall;
+	int nop;
+} inst_stats_t;
+inst_stats_t inst_stats = {0,0,0,0,0,0,0};
+
 // Cache Variables
 cache_line_t* cache = NULL;
 int cache_index = 0;
@@ -359,30 +371,44 @@ void iplc_sim_process_pipeline_rtype(char *instruction, int dest_reg, int reg1, 
     pipeline[FETCH].stage.rtype.reg1 = reg1;
     pipeline[FETCH].stage.rtype.reg2_or_constant = reg2_or_constant;
     pipeline[FETCH].stage.rtype.dest_reg = dest_reg;
+
+    inst_stats.rtype++;
 }
 
 void iplc_sim_process_pipeline_lw(int dest_reg, int base_reg, unsigned int data_address) {
     /* You must implement this function */
+
+    inst_stats.lw++;
 }
 
 void iplc_sim_process_pipeline_sw(int src_reg, int base_reg, unsigned int data_address) {
     /* You must implement this function */
+
+    inst_stats.sw++;
 }
 
 void iplc_sim_process_pipeline_branch(int reg1, int reg2) {
     /* You must implement this function */
+
+    inst_stats.branch++;
 }
 
 void iplc_sim_process_pipeline_jump(char *instruction) {
     /* You must implement this function */
+
+    inst_stats.jump++;
 }
 
 void iplc_sim_process_pipeline_syscall() {
     /* You must implement this function */
+
+    inst_stats.syscall++;
 }
 
 void iplc_sim_process_pipeline_nop() {
     /* You must implement this function */
+
+    inst_stats.nop++;
 }
 
 
@@ -545,8 +571,8 @@ void pretty_print_table_menu(char* title, char menu_sep,
 						int w1, int w2, int w3, int w4, int w5, int w6) {
 
 	const char* padding = "--------------------------------------------------------------------------------";
-	const char* blank 	= "                                                                                ";
 
+	printf("\n");
 	printf("%s:\n", 
 		title);
 	printf("%2c%s\n", ' ', 
@@ -579,15 +605,6 @@ void pretty_print_table_menu(char* title, char menu_sep,
 		w5+1, menu_sep, 
 		w6+1, menu_sep);
 
-	printf("%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c\n", 
-		'+',
-		w1, padding, '+', 
-		w2, padding, '+', 
-		w3, padding, '+', 
-		w4, padding, '+', 
-		w5, padding, '+', 
-		w6, padding, '+');
-
 }
 
 /*
@@ -597,6 +614,16 @@ Includes pointing out which run had the lowest CPI and cache miss rate.
 void pretty_print_table_body(pa_run_t* results, int m, int w1, int w2, int w3, int w4, int w5, int w6) {
 
 	char* str;
+	const char* padding = "--------------------------------------------------------------------------------";
+
+	printf("%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c\n", 
+		'+',
+		w1, padding, '+', 
+		w2, padding, '+', 
+		w3, padding, '+', 
+		w4, padding, '+', 
+		w5, padding, '+', 
+		w6, padding, '+');
 
 	for (int i = 0; i < 18; i++) {
 
@@ -615,13 +642,38 @@ void pretty_print_table_body(pa_run_t* results, int m, int w1, int w2, int w3, i
 		+---+---+---+----+--------+--------+
 		| 0   0   0   0  | 0.0000   0.0000 |
 		| 0   0   0   0  | 0.0000   0.0000 |
+		+---+---+---+----+--------+--------+
 		*/
 
 	}
 
+	printf("%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c%.*s%c\n", 
+		'+',
+		w1, padding, '+', 
+		w2, padding, '+', 
+		w3, padding, '+', 
+		w4, padding, '+', 
+		w5, padding, '+', 
+		w6, padding, '+');
+
 }
 
-void run_pa(FILE* trace_file, pa_run_t* pa_sims) {
+/* pretty prints the performance analysis in a pretty table */
+void pretty_print_table(char* title, char menu_sep, pa_run_t* results, int m,
+						char* col1, char* col2, char* col3, char* col4, char* col5, char* col6,
+						int w1, int w2, int w3, int w4, int w5, int w6) {
+
+	pretty_print_table_menu(title, menu_sep,
+							col1, col2, col3, col4, col5, col6,
+							w1,w2,w3,w4,w5,w6);
+
+	pretty_print_table_body(results, m, w1,w2,w3,w4,w5,w6);
+
+}
+
+/* runs the performance analysis testing and prints the results */
+void run_pa(FILE* trace_file, pa_run_t* pa_sims, int p1, int p2) {
+	// p1 and p2 are the precisions of the cpi and cache miss raterespectively
 
 	char buffer[80];
 
@@ -668,11 +720,35 @@ void run_pa(FILE* trace_file, pa_run_t* pa_sims) {
 
 	}
 
-	pretty_print_table_menu("Simulation Performance analysis", ':', 
+	pretty_print_table("Simulation Performance analysis", ':', pa_sims, m,
 		"cache size", "block size", "associativity", "branch prediction", "CPI", "cache miss rate",
-		3,3,3,4,8,8);
+		3,3,3,4,p1+4,p2+4);
 
-	pretty_print_table_body(pa_sims, m, 3,3,3,4,8,8);
+}
+
+/* calcualtes and prints stats in the counts of the parsed instructions */
+void calc_inst_stats() {
+
+	char* padding = "------------------------";
+	int w1 = 15;
+	int w2 = 10;
+
+	printf("\n");
+	printf("%s\n", "Instruction Statistics");
+	printf("%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+');
+	printf("%c%*s%2c%c%*s%2c%c\n", '|', w1-2, "instruction", ' ', '|', w2-2, "count", ' ', '|');
+	printf("%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+');
+
+	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "rtype"	, ' ', '|', w2-2, inst_stats.rtype 	, ' ', '|');
+	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "sw"		, ' ', '|', w2-2, inst_stats.sw 	, ' ', '|');
+	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "lw"		, ' ', '|', w2-2, inst_stats.lw 	, ' ', '|');
+	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "branch"	, ' ', '|', w2-2, inst_stats.branch , ' ', '|');
+	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "jump"	, ' ', '|', w2-2, inst_stats.jump 	, ' ', '|');
+	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "syscall"	, ' ', '|', w2-2, inst_stats.syscall, ' ', '|');
+	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "nop"		, ' ', '|', w2-2, inst_stats.nop 	, ' ', '|');
+
+	printf("%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+');
+
 
 }
 
@@ -749,7 +825,9 @@ int main(int argc, char* argv[]) {
 
     			pa_run_t pa_sims[18];
 
-				run_pa(trace_file, pa_sims);
+				run_pa(trace_file, pa_sims, 6, 6);
+
+				calc_inst_stats();
 
     		} else {
     			//todo: problems
