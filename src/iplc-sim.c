@@ -732,23 +732,27 @@ void calc_inst_stats() {
 	char* padding = "------------------------";
 	int w1 = 15;
 	int w2 = 10;
+	int w3 = 12;
+	int total_count = inst_stats.rtype + inst_stats.sw + 
+					inst_stats.lw + inst_stats.branch + 
+					inst_stats.jump + inst_stats.syscall + inst_stats.nop;
+
 
 	printf("\n");
 	printf("%s\n", "Instruction Statistics");
-	printf("%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+');
-	printf("%c%*s%2c%c%*s%2c%c\n", '|', w1-2, "instruction", ' ', '|', w2-2, "count", ' ', '|');
-	printf("%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+');
+	printf("%c%.*s%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+', w3, padding, '+');
+	printf("%c%*s%2c%c%*s%2c%c%*s%2c%c\n", '|', w1-2, "instruction", ' ', '|', w2-2, "count", ' ', '|', w3-2, "percent", ' ', '|');
+	printf("%c%.*s%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+', w3, padding, '+');
 
-	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "rtype"	, ' ', '|', w2-2, inst_stats.rtype 	, ' ', '|');
-	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "sw"		, ' ', '|', w2-2, inst_stats.sw 	, ' ', '|');
-	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "lw"		, ' ', '|', w2-2, inst_stats.lw 	, ' ', '|');
-	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "branch"	, ' ', '|', w2-2, inst_stats.branch , ' ', '|');
-	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "jump"	, ' ', '|', w2-2, inst_stats.jump 	, ' ', '|');
-	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "syscall"	, ' ', '|', w2-2, inst_stats.syscall, ' ', '|');
-	printf("%c%*s%2c%c%*d%2c%c\n", '|', w1-2, "nop"		, ' ', '|', w2-2, inst_stats.nop 	, ' ', '|');
+	printf("%c%*s%2c%c%*d%2c%c%*.*f%-3c%c\n", '|', w1-2, "rtype"	, ' ', '|', w2-2, inst_stats.rtype 	, ' ', '|', w3-3, 3, (double) 100*inst_stats.rtype/total_count	, '%', '|');
+	printf("%c%*s%2c%c%*d%2c%c%*.*f%-3c%c\n", '|', w1-2, "sw"		, ' ', '|', w2-2, inst_stats.sw 	, ' ', '|', w3-3, 3, (double) 100*inst_stats.sw/total_count		, '%', '|');
+	printf("%c%*s%2c%c%*d%2c%c%*.*f%-3c%c\n", '|', w1-2, "lw"		, ' ', '|', w2-2, inst_stats.lw 	, ' ', '|', w3-3, 3, (double) 100*inst_stats.lw/total_count		, '%', '|');
+	printf("%c%*s%2c%c%*d%2c%c%*.*f%-3c%c\n", '|', w1-2, "branch"	, ' ', '|', w2-2, inst_stats.branch , ' ', '|', w3-3, 3, (double) 100*inst_stats.branch/total_count	, '%', '|');
+	printf("%c%*s%2c%c%*d%2c%c%*.*f%-3c%c\n", '|', w1-2, "jump"		, ' ', '|', w2-2, inst_stats.jump 	, ' ', '|', w3-3, 3, (double) 100*inst_stats.jump/total_count	, '%', '|');
+	printf("%c%*s%2c%c%*d%2c%c%*.*f%-3c%c\n", '|', w1-2, "syscall"	, ' ', '|', w2-2, inst_stats.syscall, ' ', '|', w3-3, 3, (double) 100*inst_stats.syscall/total_count, '%', '|');
+	printf("%c%*s%2c%c%*d%2c%c%*.*f%-3c%c\n", '|', w1-2, "nop"		, ' ', '|', w2-2, inst_stats.nop 	, ' ', '|', w3-3, 3, (double) 100*inst_stats.nop/total_count	, '%', '|');
 
-	printf("%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+');
-
+	printf("%c%.*s%c%.*s%c%.*s%c\n", '+', w1, padding, '+', w2, padding, '+', w3, padding, '+');
 
 }
 
