@@ -341,11 +341,14 @@ void iplc_sim_dump_pipeline() {
 
 /*  Check if various stages of our pipeline require stalls, forwarding, etc.
     Then push the contents of our various pipeline stages through the pipeline */
-void iplc_sim_push_pipeline_stage() {
+void iplc_sim_push_pipeline_stage()
+{
     int i;
-    int data_hit = 1;
+    int data_hit=1;
+
+    int stall = 0;
     
-    //  1. Count WRITEBACK stage is "retired" -- This I'm giving you
+    /* 1. Count WRITEBACK stage is "retired" -- This I'm giving you */
     if (pipeline[WRITEBACK].instruction_address) {
         instruction_count++;
         if (debug)
@@ -353,31 +356,88 @@ void iplc_sim_push_pipeline_stage() {
                    pipeline[WRITEBACK].instruction_address, pipeline[WRITEBACK].itype, pipeline_cycles);
     }
     
-    //  2. Check for BRANCH and correct/incorrect Branch Prediction
+    /* 2. Check for BRANCH and correct/incorrect Branch Prediction */
     if (pipeline[DECODE].itype == BRANCH) {
         int branch_taken = 0;
+        branch_count++;
+        if(pipeline[FETCH].instruction_address != (pipeline[DECODE].instruction_address + 4) ){
+            branch_taken++;
+        }
+        if(branch_predict_taken){ // if choose predict take branches and next instruction is not at address+4,
+                          // prediction correct.  Else add nop for stall
+            if(branch_taken){
+                correct_branch_predictions++;
+            }
+            else{
+                //memcpy(&pipeline[WRITEBACK], &pipeline[MEM], sizeof(pipeline_t));
+                //memcpy(&pipeline[MEM], &pipeline[ALU], sizeof(pipeline_t));
+                //memcpy(&pipeline[ALU], &pipeline[DECODE], sizeof(pipeline_t));
+                //memcpy(&pipeline[DECODE], &pipeline[FETCH], sizeof(pipeline_t));
+                //bzero(&(pipeline[FETCH]), sizeof(pipeline_t));
+                stall = 1; // if incorrect remove this variable and just increment cycles
+            }
+        }
+        else{
+            if(!branch_taken){
+                correct_branch_predictions++;
+            }
+            else{
+                //memcpy(&pipeline[WRITEBACK], &pipeline[MEM], sizeof(pipeline_t));
+                //memcpy(&pipeline[MEM], &pipeline[ALU], sizeof(pipeline_t));
+                //memcpy(&pipeline[ALU], &pipeline[DECODE], sizeof(pipeline_t));
+                //memcpy(&pipeline[DECODE], &pipeline[FETCH], sizeof(pipeline_t));
+                //bzero(&(pipeline[FETCH]), sizeof(pipeline_t));
+                stall = 1;
+            }
+        }
     }
     
-    /*  3. Check for LW delays due to use in ALU stage and if data hit/miss
-        add delay cycles if needed. */
+    /* 3. Check for LW delays due to use in ALU stage and if data hit/miss
+     *    add delay cycles if needed.
+     */
     if (pipeline[MEM].itype == LW) {
         int inserted_nop = 0;
+        if(pipeline[ALU].itype == RTYPE){
+            if(pipeline[ALU].stage.rtype.reg1 == pipeline[MEM].stage.lw.dest_reg
+                || pipeline[ALU].stage.rtype.reg2_or_constant == pipeline[MEM].stage.lw.dest_reg){
+                stall++;
+            }
+        }
     }
     
-    /*  4. Check for SW mem acess and data miss .. add delay cycles if needed */
+    /* 4. Check for SW mem acess and data miss .. add delay cycles if needed */
     if (pipeline[MEM].itype == SW) {
+        if(pipeline[ALU].itype == RTYPE){
+            if(pipeline[ALU].stage.rtype.dest_reg == pipeline[MEM].stage.sw.base_reg){
+                stall++;
+            }
+        }
     }
     
-    //  5. Increment pipe_cycles 1 cycle for normal processing
-    //  6. push stages thru MEM->WB, ALU->MEM, DECODE->ALU, FETCH->ALU
+    /* 5. Increment pipe_cycles 1 cycle for normal processing */
+    pipeline_cycles++;
+    /* 6. push stages thru MEM->WB, ALU->MEM, DECODE->ALU, FETCH->ALU */ // FETCH->DECODE
+    memcpy(&pipeline[WRITEBACK], &pipeline[MEM], sizeof(pipeline_t));
+    memcpy(&pipeline[MEM], &pipeline[ALU], sizeof(pipeline_t));
+    memcpy(&pipeline[ALU], &pipeline[DECODE], sizeof(pipeline_t));
+    memcpy(&pipeline[DECODE], &pipeline[FETCH], sizeof(pipeline_t));
+
+
     
-    //  7. This is a give'me -- Reset the FETCH stage to NOP via bezero
+    // 7. This is a give'me -- Reset the FETCH stage to NOP via bezero */
     bzero(&(pipeline[FETCH]), sizeof(pipeline_t));
+
+    if(stall){
+        iplc_sim_push_pipeline_stage();
+    }
 }
 
-/*  This function is fully implemented.  You should use this as a reference
-    for implementing the remaining instruction types */
-void iplc_sim_process_pipeline_rtype(char *instruction, int dest_reg, int reg1, int reg2_or_constant) {
+/*
+ * This function is fully implemented.  You should use this as a reference
+ * for implementing the remaining instruction types.
+ */
+void iplc_sim_process_pipeline_rtype(char *instruction, int dest_reg, int reg1, int reg2_or_constant)
+{
     /* This is an example of what you need to do for the rest */
     iplc_sim_push_pipeline_stage();
     
@@ -388,44 +448,73 @@ void iplc_sim_process_pipeline_rtype(char *instruction, int dest_reg, int reg1, 
     pipeline[FETCH].stage.rtype.reg1 = reg1;
     pipeline[FETCH].stage.rtype.reg2_or_constant = reg2_or_constant;
     pipeline[FETCH].stage.rtype.dest_reg = dest_reg;
-
-    inst_stats.rtype++;
 }
 
-void iplc_sim_process_pipeline_lw(int dest_reg, int base_reg, unsigned int data_address) {
+void iplc_sim_process_pipeline_lw(int dest_reg, int base_reg, unsigned int data_address)
+{
     /* You must implement this function */
+    iplc_sim_push_pipeline_stage();
 
-    inst_stats.lw++;
+    pipeline[FETCH].itype = LW;
+    pipeline[FETCH].instruction_address = instruction_address;
+
+    pipeline[FETCH].stage.lw.data_address = data_address;
+    pipeline[FETCH].stage.lw.dest_reg = dest_reg;
+    pipeline[FETCH].stage.lw.base_reg = base_reg;
 }
 
-void iplc_sim_process_pipeline_sw(int src_reg, int base_reg, unsigned int data_address) {
+void iplc_sim_process_pipeline_sw(int src_reg, int base_reg, unsigned int data_address)
+{
     /* You must implement this function */
+    iplc_sim_push_pipeline_stage();
 
-    inst_stats.sw++;
+    pipeline[FETCH].itype = SW;
+    pipeline[FETCH].instruction_address = instruction_address;
+
+    pipeline[FETCH].stage.sw.data_address = data_address;
+    pipeline[FETCH].stage.sw.src_reg = src_reg;
+    pipeline[FETCH].stage.sw.base_reg = base_reg;
 }
 
-void iplc_sim_process_pipeline_branch(int reg1, int reg2) {
+void iplc_sim_process_pipeline_branch(int reg1, int reg2)
+{
     /* You must implement this function */
+    iplc_sim_push_pipeline_stage();
 
-    inst_stats.branch++;
+    pipeline[FETCH].itype = BRANCH;
+    pipeline[FETCH].instruction_address = instruction_address;
+
+    pipeline[FETCH].stage.branch.reg1 = reg1;
+    pipeline[FETCH].stage.branch.reg2 = reg2;
 }
 
-void iplc_sim_process_pipeline_jump(char *instruction) {
+void iplc_sim_process_pipeline_jump(char *instruction)
+{
     /* You must implement this function */
+    iplc_sim_push_pipeline_stage();
 
-    inst_stats.jump++;
+    pipeline[FETCH].itype = JUMP;
+    pipeline[FETCH].instruction_address = instruction_address;
+
+    strcpy(pipeline[FETCH].stage.jump.instruction, instruction);
 }
 
-void iplc_sim_process_pipeline_syscall() {
+void iplc_sim_process_pipeline_syscall()
+{
     /* You must implement this function */
+    iplc_sim_push_pipeline_stage();
 
-    inst_stats.syscall++;
+    pipeline[FETCH].itype = SYSCALL;
+    pipeline[FETCH].instruction_address = instruction_address;
 }
 
-void iplc_sim_process_pipeline_nop() {
+void iplc_sim_process_pipeline_nop()
+{
     /* You must implement this function */
+    iplc_sim_push_pipeline_stage();
 
-    inst_stats.nop++;
+    pipeline[FETCH].itype = NOP;
+    pipeline[FETCH].instruction_address = instruction_address;
 }
 
 
