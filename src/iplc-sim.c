@@ -195,7 +195,7 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
         bzero(&(pipeline[i]), sizeof(pipeline_t));
     }
 }
-
+/*
 void iplc_sim_close() {
 	int i;
 	// Dealocate all sets in the cache
@@ -205,6 +205,7 @@ void iplc_sim_close() {
 	// Dealocate the cache array
 	free(cache);
 }
+*/
 
 /*  iplc_sim_trap_address() determined this is not in our cache. Put it there
     and make sure that is now our Most Recently Used (MRU) entry. */
@@ -732,6 +733,11 @@ void run_pa(FILE* trace_file, pa_run_t* pa_sims, int p1, int p2) {
 
         pa_sims[i].cpi = cpi_outputs[i];
         pa_sims[i].cmr = cmr_outputs[i];
+
+        instruction_count = 0;
+        pipeline_cycles = 0;
+        cache_access = 0;
+        cache_miss = 0;
 
     }
 
