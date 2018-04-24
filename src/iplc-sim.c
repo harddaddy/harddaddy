@@ -63,7 +63,7 @@ typedef struct pa_run {
     double cmr; // cache miss rate
 } pa_run_t;
 
-// stats for the various instructions
+// Stats for the various instructions
 typedef struct instruction_stats {
     int rtype;
     int lw;
@@ -199,38 +199,43 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
     and make sure that is now our Most Recently Used (MRU) entry. */
 void iplc_sim_LRU_replace_on_miss(int index, int tag) {
     int i;
-    int oldest_age = cache[index].age[0];
-    int oldest_line = 0;
+    int oldest_age = 0;
+    int target_line = 0;
     
-    // Search for the least recently used line
+    // Find the target block to insert our new block
     for (i = 0; i < cache_assoc; i++) {
-        // Check for empty locations in the set
+        // If there is an empty space, just insert it
         if (cache[index].valid_bit[i] == 0) {
-            oldest_line = i;
+            target_line = i;
             break;
         }
+        
+        // Find the oldest block and mark it for replacement
         if (cache[index].age[i] > oldest_age) {
             oldest_age = cache[index].age[i];
-            oldest_line = i;
+            target_line = i;
         }
     }
     
-    // Replace the tag
-    cache[index].tag[oldest_line] = tag;
+    // Replace the tage of the target block and change the valid bit
+    cache[index].tag[target_line] = tag;
+    cache[index].valid_bit[target_line] = 1;
     
-    // Update statistics
-    iplc_sim_LRU_update_on_hit(index, oldest_line);
+    // We now update the data for all valid blocks
+    iplc_sim_LRU_update_on_hit(index, target_line);
 }
 
 /*  iplc_sim_trap_address() determined the entry is in our cache. Update its
     information in the cache. */
 void iplc_sim_LRU_update_on_hit(int index, int assoc_entry) {
     int i;
-    
-    // Update all age counters for each line in the set
+   
+    // Update all age counters for each valid line
     cache[index].age[assoc_entry] = 0;
     for (i = 0; i < cache_assoc; i++) {
-        cache[index].age[i] += 1;
+        if (cache[index].valid_bit[i] == 1) {
+            cache[index].age[i] += 1;
+        }
     }
 }
 
@@ -467,10 +472,9 @@ void iplc_sim_parse_instruction(char *buffer) {
         printf("INST HIT:\t Address 0x%x \n", instruction_address);
     
     // Parse the Instruction
-    
-    if (strncmp( instruction, "add", 3 ) == 0 ||
-        strncmp( instruction, "sll", 3 ) == 0 ||
-        strncmp( instruction, "ori", 3 ) == 0) {
+    if (strncmp(instruction, "add", 3 ) == 0 ||
+        strncmp(instruction, "sll", 3 ) == 0 ||
+        strncmp(instruction, "ori", 3 ) == 0) {
         if (sscanf(buffer, "%x %s %s %s %s",
                    &instruction_address,
                    instruction,
@@ -522,7 +526,7 @@ void iplc_sim_parse_instruction(char *buffer) {
             
             dest_reg = iplc_sim_parse_reg(reg1);
             
-            // don't need to worry about base regs -- just insert -1 values
+            // Don't need to worry about base regs -- just insert -1 values
             iplc_sim_process_pipeline_lw(dest_reg, -1, data_address);
         }
         if (strncmp( instruction, "sw", 2 ) == 0) {
@@ -762,9 +766,7 @@ void calc_inst_stats() {
 
 //*****Main Function*****//
 int main(int argc, char* argv[]) {
-    /*
-    Arguments: [-pa <tracefile>]
-    */
+    // Arguments: [-pa <tracefile>]
 
     char trace_file_name[1024];
     FILE *trace_file = NULL;
@@ -774,16 +776,14 @@ int main(int argc, char* argv[]) {
     int assoc = 1;
 
     if (argc == 1) {
-        /*
-        When no other arguments are given, default to asking the user for the input information.
-        */
+        // When no other arguments are given, default to asking the user for the input information.
 
         printf("Please enter the tracefile: ");
         scanf("%s", trace_file_name);
         
         trace_file = fopen(trace_file_name, "r");
         
-        if ( trace_file == NULL ) {
+        if (trace_file == NULL) {
             printf("fopen failed for %s file\n", trace_file_name);
             exit(-1);
         }
@@ -792,7 +792,7 @@ int main(int argc, char* argv[]) {
         scanf( "%d %d %d", &index, &blocksize, &assoc );
         
         printf("Enter Branch Prediction: 0 (NOT taken), 1 (TAKEN): ");
-        scanf("%d", &branch_predict_taken );
+        scanf("%d", &branch_predict_taken);
         
         iplc_sim_init(index, blocksize, assoc);
         
@@ -810,14 +810,12 @@ int main(int argc, char* argv[]) {
         */
 
         if (argc == 3) {
-
             if (strcmp(argv[1],"-pa") == 0) {
 
                 /*
                 When -pa is specified, run the performance analysis on pre-set input variables.
                 The output is then summarized for the simulation.
                 */
-
 
                 trace_file = fopen(argv[2], "r");
 
@@ -832,18 +830,12 @@ int main(int argc, char* argv[]) {
                 run_pa(trace_file, pa_sims, 6, 6);
 
                 calc_inst_stats();
-
             } else {
                 //todo: problems
             }
-
         } else {
             //todo: problems
         }
-
     }
-
-    
-    
     return 0;
 }
