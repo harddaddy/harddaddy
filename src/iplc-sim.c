@@ -16,8 +16,9 @@
 
 
 //****** Functions *****//
-// Initialize the simulator
+// Simulator Functions
 void iplc_sim_init(int index, int blocksize, int assoc);
+void iplc_sim_close();
 
 // Cache Simulator Functions
 void iplc_sim_LRU_replace_on_miss(int index, int tag);
@@ -155,7 +156,7 @@ pipeline_t pipeline[MAX_STAGES];
 //*****Cache Function Implementations*****//
 // Correctly configure the cache
 void iplc_sim_init(int index, int blocksize, int assoc) {
-    int i = 0, j = 0;
+    int i;
     unsigned long cache_size = 0;
     cache_index = index;
     cache_blocksize = blocksize;
@@ -193,6 +194,16 @@ void iplc_sim_init(int index, int blocksize, int assoc) {
         // itype is set to O which is NOP type instruction
         bzero(&(pipeline[i]), sizeof(pipeline_t));
     }
+}
+
+void iplc_sim_close() {
+	int i;
+	// Dealocate all sets in the cache
+	for (i = 0; i < cache_assoc; i++) {
+		free(cache[i]);
+	}
+	// Dealocate the cache array
+	free(cache);
 }
 
 /*  iplc_sim_trap_address() determined this is not in our cache. Put it there
