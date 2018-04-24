@@ -777,15 +777,17 @@ void pretty_print_table(char* title, char menu_sep, pa_run_t* results, int m,
 }
 
 /* runs the performance analysis testing and prints the results */
-void run_pa(FILE* trace_file, pa_run_t* pa_sims, int p1, int p2) {
+void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
     // p1 and p2 are the precisions of the cpi and cache miss raterespectively
+
+    
 
     char buffer[80];
 
-    int index_inputs    [18] = {7,6,6,6,5,5,5,4,4,  7,6,6,6,5,5,5,4,4};
-    int blocksize_inputs[18] = {1,1,2,4,1,2,4,2,4,  1,1,2,4,1,2,4,2,4};
-    int assoclvl_inputs [18] = {1,2,1,1,4,2,2,4,4,  1,2,1,1,4,2,2,4,4};
-    int brnchpred_inputs[18] = {0,0,0,0,0,0,0,0,0,  1,1,1,1,1,1,1,1,1};
+    int index_inputs    [18] = {2,6,6,6,5,5,5,4,4,  7,6,6,6,5,5,5,4,4};
+    int blocksize_inputs[18] = {2,1,2,4,1,2,4,2,4,  1,1,2,4,1,2,4,2,4};
+    int assoclvl_inputs [18] = {2,2,1,1,4,2,2,4,4,  1,2,1,1,4,2,2,4,4};
+    int brnchpred_inputs[18] = {1,0,0,0,0,0,0,0,0,  1,1,1,1,1,1,1,1,1};
 
     double cpi_outputs[18];
     double cmr_outputs[18];
@@ -793,6 +795,8 @@ void run_pa(FILE* trace_file, pa_run_t* pa_sims, int p1, int p2) {
     int m = 0;
 
     for (int i = 0; i < 18; i++) {
+
+    	FILE* trace_file = fopen(tracefile, "r");
 
         pa_sims[i].index            = index_inputs[i];
         pa_sims[i].blocksize        = blocksize_inputs[i];
@@ -827,6 +831,8 @@ void run_pa(FILE* trace_file, pa_run_t* pa_sims, int p1, int p2) {
         pipeline_cycles = 0;
         cache_access = 0;
         cache_miss = 0;
+
+        //fclose(trace_file);
 
     }
 
@@ -933,7 +939,7 @@ int main(int argc, char* argv[]) {
 
                 pa_run_t pa_sims[18];
 
-                run_pa(trace_file, pa_sims, 6, 6);
+                run_pa(argv[2], pa_sims, 6, 6);
 
                 calc_inst_stats();
             } else {
