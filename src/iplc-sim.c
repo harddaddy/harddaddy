@@ -448,6 +448,8 @@ void iplc_sim_process_pipeline_rtype(char *instruction, int dest_reg, int reg1, 
     pipeline[FETCH].stage.rtype.reg1 = reg1;
     pipeline[FETCH].stage.rtype.reg2_or_constant = reg2_or_constant;
     pipeline[FETCH].stage.rtype.dest_reg = dest_reg;
+
+    inst_stats.rtype++;
 }
 
 void iplc_sim_process_pipeline_lw(int dest_reg, int base_reg, unsigned int data_address)
@@ -461,6 +463,8 @@ void iplc_sim_process_pipeline_lw(int dest_reg, int base_reg, unsigned int data_
     pipeline[FETCH].stage.lw.data_address = data_address;
     pipeline[FETCH].stage.lw.dest_reg = dest_reg;
     pipeline[FETCH].stage.lw.base_reg = base_reg;
+
+    inst_stats.lw++;
 }
 
 void iplc_sim_process_pipeline_sw(int src_reg, int base_reg, unsigned int data_address)
@@ -474,6 +478,8 @@ void iplc_sim_process_pipeline_sw(int src_reg, int base_reg, unsigned int data_a
     pipeline[FETCH].stage.sw.data_address = data_address;
     pipeline[FETCH].stage.sw.src_reg = src_reg;
     pipeline[FETCH].stage.sw.base_reg = base_reg;
+
+    inst_stats.sw++;
 }
 
 void iplc_sim_process_pipeline_branch(int reg1, int reg2)
@@ -486,6 +492,8 @@ void iplc_sim_process_pipeline_branch(int reg1, int reg2)
 
     pipeline[FETCH].stage.branch.reg1 = reg1;
     pipeline[FETCH].stage.branch.reg2 = reg2;
+
+    inst_stats.branch++;
 }
 
 void iplc_sim_process_pipeline_jump(char *instruction)
@@ -497,6 +505,8 @@ void iplc_sim_process_pipeline_jump(char *instruction)
     pipeline[FETCH].instruction_address = instruction_address;
 
     strcpy(pipeline[FETCH].stage.jump.instruction, instruction);
+
+    inst_stats.jump++;
 }
 
 void iplc_sim_process_pipeline_syscall()
@@ -506,6 +516,8 @@ void iplc_sim_process_pipeline_syscall()
 
     pipeline[FETCH].itype = SYSCALL;
     pipeline[FETCH].instruction_address = instruction_address;
+
+    inst_stats.syscall++;
 }
 
 void iplc_sim_process_pipeline_nop()
@@ -515,6 +527,8 @@ void iplc_sim_process_pipeline_nop()
 
     pipeline[FETCH].itype = NOP;
     pipeline[FETCH].instruction_address = instruction_address;
+
+    inst_stats.nop++;
 }
 
 
@@ -784,10 +798,10 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
 
     char buffer[80];
 
-    int index_inputs    [18] = {2,6,6,6,5,5,5,4,4,  7,6,6,6,5,5,5,4,4};
-    int blocksize_inputs[18] = {2,1,2,4,1,2,4,2,4,  1,1,2,4,1,2,4,2,4};
-    int assoclvl_inputs [18] = {2,2,1,1,4,2,2,4,4,  1,2,1,1,4,2,2,4,4};
-    int brnchpred_inputs[18] = {1,0,0,0,0,0,0,0,0,  1,1,1,1,1,1,1,1,1};
+    int index_inputs    [18] = {7,6,6,6,5,5,5,4,4,  7,6,6,6,5,5,5,4,2};
+    int blocksize_inputs[18] = {1,1,2,4,1,2,4,2,4,  1,1,2,4,1,2,4,2,2};
+    int assoclvl_inputs [18] = {1,2,1,1,4,2,2,4,4,  1,2,1,1,4,2,2,4,2};
+    int brnchpred_inputs[18] = {0,0,0,0,0,0,0,0,0,  1,1,1,1,1,1,1,1,1};
 
     double cpi_outputs[18];
     double cmr_outputs[18];
@@ -810,15 +824,15 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
 
             iplc_sim_parse_instruction(buffer);
             if(dump_pipeline) {
-                iplc_sim_dump_pipeline();
+                //iplc_sim_dump_pipeline();
             }
 
         }
 
         iplc_sim_finalize();
 
-        cpi_outputs[i] = (instruction_count == 0)   ? 0 : (pipeline_cycles / instruction_count);
-        cmr_outputs[i] = (cache_access == 0)        ? 0 : (cache_miss / cache_access);
+        cpi_outputs[i] = (instruction_count == 0)   ? 0 : ((double) pipeline_cycles / (double) instruction_count);
+        cmr_outputs[i] = (cache_access == 0)        ? 0 : ((double) cache_miss / (double) cache_access);
 
         if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
             m = i;
@@ -827,10 +841,12 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
         pa_sims[i].cpi = cpi_outputs[i];
         pa_sims[i].cmr = cmr_outputs[i];
 
-        instruction_count = 0;
-        pipeline_cycles = 0;
-        cache_access = 0;
-        cache_miss = 0;
+        instruction_count 			= 0;
+        pipeline_cycles 			= 0;
+        cache_access 				= 0;
+        cache_miss 					= 0;
+        correct_branch_predictions 	= 0;
+        branch_count 				= 0;
 
         //fclose(trace_file);
 
@@ -849,6 +865,16 @@ void calc_inst_stats() {
     int w1 = 15;
     int w2 = 10;
     int w3 = 12;
+
+    inst_stats.rtype /= 18;
+    inst_stats.sw /= 18;
+    inst_stats.lw /= 18;
+    inst_stats.branch /= 18;
+    inst_stats.jump /= 18;
+    inst_stats.syscall /= 18;
+    inst_stats.nop /= 18;
+
+
     int total_count = inst_stats.rtype + inst_stats.sw + 
                     inst_stats.lw + inst_stats.branch + 
                     inst_stats.jump + inst_stats.syscall + inst_stats.nop;
