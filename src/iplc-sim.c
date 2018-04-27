@@ -798,6 +798,8 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
 
     char buffer[80];
 
+    //the nine different simulations, created using arrays
+    //the first and last nine are identical, just with branch predictor configured as take or not taken.
     int index_inputs    [18] = {7,6,6,6,5,5,5,4,4,  7,6,6,6,5,5,5,4,2};
     int blocksize_inputs[18] = {1,1,2,4,1,2,4,2,4,  1,1,2,4,1,2,4,2,2};
     int assoclvl_inputs [18] = {1,2,1,1,4,2,2,4,4,  1,2,1,1,4,2,2,4,2};
@@ -806,6 +808,7 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
     double cpi_outputs[18];
     double cmr_outputs[18];
 
+    //keep track of best cache performance
     int m = 0;
 
     for (int i = 0; i < 18; i++) {
@@ -820,6 +823,7 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
         branch_predict_taken = brnchpred_inputs[i];
         iplc_sim_init(index_inputs[i], blocksize_inputs[i], assoclvl_inputs[i]);
 
+        //Reads the file and parses the instructions
         while(fgets(buffer, 80, trace_file) != NULL) {
 
             iplc_sim_parse_instruction(buffer);
@@ -834,14 +838,25 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
         cpi_outputs[i] = (instruction_count == 0)   ? 0 : ((double) pipeline_cycles / (double) instruction_count);
         cmr_outputs[i] = (cache_access == 0)        ? 0 : ((double) cache_miss / (double) cache_access);
 
+<<<<<<< HEAD
+=======
+        //update best cache performance
+        if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
+            m = i;
+        }
+>>>>>>> 1c53656b6615ae8555b109250a8e9b82c9b03978
 
         pa_sims[i].cpi = cpi_outputs[i];
         pa_sims[i].cmr = cmr_outputs[i];
 
+<<<<<<< HEAD
         if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
             m = i;
         }
 
+=======
+        //reset variables
+>>>>>>> 1c53656b6615ae8555b109250a8e9b82c9b03978
         instruction_count 			= 0;
         pipeline_cycles 			= 0;
         cache_access 				= 0;
@@ -867,6 +882,7 @@ void calc_inst_stats() {
     int w2 = 10;
     int w3 = 12;
 
+    //get average results
     inst_stats.rtype /= 18;
     inst_stats.sw /= 18;
     inst_stats.lw /= 18;
