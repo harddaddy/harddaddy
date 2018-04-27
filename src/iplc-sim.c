@@ -834,12 +834,13 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
         cpi_outputs[i] = (instruction_count == 0)   ? 0 : ((double) pipeline_cycles / (double) instruction_count);
         cmr_outputs[i] = (cache_access == 0)        ? 0 : ((double) cache_miss / (double) cache_access);
 
-        if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
-            m = i;
-        }
 
         pa_sims[i].cpi = cpi_outputs[i];
         pa_sims[i].cmr = cmr_outputs[i];
+
+        if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
+            m = i;
+        }
 
         instruction_count 			= 0;
         pipeline_cycles 			= 0;
