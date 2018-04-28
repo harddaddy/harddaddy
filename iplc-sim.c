@@ -359,25 +359,16 @@ void iplc_sim_push_pipeline_stage()
                 correct_branch_predictions++;
             }
             else{
-                //memcpy(&pipeline[WRITEBACK], &pipeline[MEM], sizeof(pipeline_t));
-                //memcpy(&pipeline[MEM], &pipeline[ALU], sizeof(pipeline_t));
-                //memcpy(&pipeline[ALU], &pipeline[DECODE], sizeof(pipeline_t));
-                //memcpy(&pipeline[DECODE], &pipeline[FETCH], sizeof(pipeline_t));
-                //bzero(&(pipeline[FETCH]), sizeof(pipeline_t));
                 stall = 1; // if incorrect remove this variable and just increment cycles
             }
         }
         else{
+		//if correct increment correct predictions
             if(!branch_taken){
                 correct_branch_predictions++;
             }
             else{
-                //memcpy(&pipeline[WRITEBACK], &pipeline[MEM], sizeof(pipeline_t));
-                //memcpy(&pipeline[MEM], &pipeline[ALU], sizeof(pipeline_t));
-                //memcpy(&pipeline[ALU], &pipeline[DECODE], sizeof(pipeline_t));
-                //memcpy(&pipeline[DECODE], &pipeline[FETCH], sizeof(pipeline_t));
-                //bzero(&(pipeline[FETCH]), sizeof(pipeline_t));
-                stall = 1;
+               stall = 1;
             }
         }
     }
@@ -428,7 +419,6 @@ void iplc_sim_push_pipeline_stage()
  */
 void iplc_sim_process_pipeline_rtype(char *instruction, int dest_reg, int reg1, int reg2_or_constant)
 {
-    /* This is an example of what you need to do for the rest */
     iplc_sim_push_pipeline_stage();
     
     pipeline[FETCH].itype = RTYPE;
@@ -440,9 +430,12 @@ void iplc_sim_process_pipeline_rtype(char *instruction, int dest_reg, int reg1, 
     pipeline[FETCH].stage.rtype.dest_reg = dest_reg;
 }
 
+/*
+ * This function loads a word into the destination register from the base register
+ * by storing the data for the given instruction in pipeline FETCH
+ */
 void iplc_sim_process_pipeline_lw(int dest_reg, int base_reg, unsigned int data_address)
 {
-    /* You must implement this function */
     iplc_sim_push_pipeline_stage();
 
     pipeline[FETCH].itype = LW;
@@ -453,9 +446,12 @@ void iplc_sim_process_pipeline_lw(int dest_reg, int base_reg, unsigned int data_
     pipeline[FETCH].stage.lw.base_reg = base_reg;
 }
 
+/*
+ * This fucntion stores the contents of a register at the specified data address
+ * by storing the information in the pipeline FETCH
+ */
 void iplc_sim_process_pipeline_sw(int src_reg, int base_reg, unsigned int data_address)
 {
-    /* You must implement this function */
     iplc_sim_push_pipeline_stage();
 
     pipeline[FETCH].itype = SW;
@@ -466,9 +462,11 @@ void iplc_sim_process_pipeline_sw(int src_reg, int base_reg, unsigned int data_a
     pipeline[FETCH].stage.sw.base_reg = base_reg;
 }
 
+/*
+ * This function stores the branch instruction into the pipeline FETCH
+ */
 void iplc_sim_process_pipeline_branch(int reg1, int reg2)
 {
-    /* You must implement this function */
     iplc_sim_push_pipeline_stage();
 
     pipeline[FETCH].itype = BRANCH;
@@ -478,9 +476,11 @@ void iplc_sim_process_pipeline_branch(int reg1, int reg2)
     pipeline[FETCH].stage.branch.reg2 = reg2;
 }
 
+/*
+ * This fucntion strores a jump instruction into FETCH
+ */
 void iplc_sim_process_pipeline_jump(char *instruction)
 {
-    /* You must implement this function */
     iplc_sim_push_pipeline_stage();
 
     pipeline[FETCH].itype = JUMP;
@@ -489,18 +489,22 @@ void iplc_sim_process_pipeline_jump(char *instruction)
     strcpy(pipeline[FETCH].stage.jump.instruction, instruction);
 }
 
+/*
+ * This function stores the SYSCALL into FETCH
+ */
 void iplc_sim_process_pipeline_syscall()
 {
-    /* You must implement this function */
     iplc_sim_push_pipeline_stage();
 
     pipeline[FETCH].itype = SYSCALL;
     pipeline[FETCH].instruction_address = instruction_address;
 }
 
+/*
+ * This fucntion stores a NOP instruction into FETCH
+ */
 void iplc_sim_process_pipeline_nop()
 {
-    /* You must implement this function */
     iplc_sim_push_pipeline_stage();
 
     pipeline[FETCH].itype = NOP;
