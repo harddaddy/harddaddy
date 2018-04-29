@@ -838,30 +838,20 @@ void run_pa(char* tracefile, pa_run_t* pa_sims, int p1, int p2) {
         cpi_outputs[i] = (instruction_count == 0)   ? 0 : ((double) pipeline_cycles / (double) instruction_count);
         cmr_outputs[i] = (cache_access == 0)        ? 0 : ((double) cache_miss / (double) cache_access);
 
-<<<<<<< HEAD
-=======
-        //update best cache performance
-        if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
-            m = i;
-        }
->>>>>>> 1c53656b6615ae8555b109250a8e9b82c9b03978
-
         pa_sims[i].cpi = cpi_outputs[i];
         pa_sims[i].cmr = cmr_outputs[i];
 
-<<<<<<< HEAD
         if (pa_sims[i].cpi + pa_sims[i].cmr < pa_sims[m].cpi + pa_sims[m].cmr) {
             m = i;
         }
 
-=======
         //reset variables
->>>>>>> 1c53656b6615ae8555b109250a8e9b82c9b03978
+
         instruction_count 			= 0;
         pipeline_cycles 			= 0;
         cache_access 				= 0;
-        cache_miss 					= 0;
-        correct_branch_predictions 	= 0;
+        cache_miss 				= 0;
+        correct_branch_predictions 		= 0;
         branch_count 				= 0;
 
         //fclose(trace_file);
